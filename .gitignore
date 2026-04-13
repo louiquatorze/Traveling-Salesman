@@ -1,0 +1,16 @@
+# Junk
+[Tt]humbs.db
+.DS_Store
+.vscode/
+
+# C++ (Ignore the folder, not the files)
+build/
+*.out
+*.exe
+*.o
+
+# Python (Ignore the folders)
+**/__pycache__/
+venv/
+.venv/
+*.py[cod]
