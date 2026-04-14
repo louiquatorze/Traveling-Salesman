@@ -11,3 +11,8 @@ add_executable(travelingSalesman
     src/solvers/TSSolver.cpp
     src/solvers/IterativeSolver.cpp
 )
+
+target_include_directories(travelingSalesman PUBLIC 
+    include
+    include/solvers
+)

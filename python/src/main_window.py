@@ -60,10 +60,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         steps_button = QtWidgets.QRadioButton("Steps")
 
-        self.city_count = QtWidgets.QSpinBox()
-        self.city_count.setRange(1, self.MAX_CITIES)
-        self.city_count.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
-        self.city_count.setValue(self.INITIAL_CITIES)
+        self.city_box = QtWidgets.QSpinBox()
+        self.city_box.setRange(1, self.MAX_CITIES)
+        self.city_box.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.city_box.setValue(self.INITIAL_CITIES)
 
         self.cities_slider = QtWidgets.QSlider(Qt.Orientation.Vertical)
         self.cities_slider.setMinimum(1)
@@ -80,11 +80,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.speed_slider.setMinimum(0.5)
         self.speed_slider.setMaximum(100.0)
         self.speed_slider.setValue(100.0)
+
+        self.algorithm_box = QtWidgets.QComboBox()
+        self.algorithm_box.addItems(["Iterative", "Recursive", "Genetic"])
+
+        self.gpu_button = QtWidgets.QRadioButton("GPU")
         
         # Arrange elements on toolbar
 
-        top_space = QtWidgets.QWidget()
-        top_space.setFixedHeight(10)
+        # Controls
+
+        group_controls = QtWidgets.QWidget()
+        layout_controls = QtWidgets.QVBoxLayout(group_controls)
+        layout_controls.setSpacing(5)        
+        layout_controls.setContentsMargins(5, 1, 5, 1)
 
         solve_button = QtWidgets.QToolButton()
         solve_button.setDefaultAction(solve_action)
@@ -97,47 +106,67 @@ class MainWindow(QtWidgets.QMainWindow):
 
         group_row1 = QtWidgets.QWidget()
         layout_row1 = QtWidgets.QHBoxLayout(group_row1)
-        layout_row1.setContentsMargins(5, 1, 5, 1)
-        layout_row1.setSpacing(10)
+        layout_row1.setContentsMargins(1, 1, 1, 1) 
+        layout_row1.setSpacing(6)
+
         layout_row1.addWidget(solve_button)
         layout_row1.addWidget(steps_button)
 
         group_row2 = QtWidgets.QWidget()
         layout_row2 = QtWidgets.QHBoxLayout(group_row2)
-        layout_row2.setContentsMargins(5, 1, 5, 1)
+        layout_row2.setContentsMargins(1, 1, 1, 1)
         layout_row2.addWidget(pause_button)
         layout_row2.addStretch(1)
 
         group_row3 = QtWidgets.QWidget()
         layout_row3 = QtWidgets.QHBoxLayout(group_row3)
-        layout_row3.setContentsMargins(5, 1, 5, 1)
+        layout_row3.setContentsMargins(1, 1, 1, 1)
         layout_row3.addWidget(random_button)
         layout_row3.addStretch(1)
 
         group_sliders = QtWidgets.QWidget()
         layout_sliders = QtWidgets.QHBoxLayout(group_sliders)
-        layout_sliders.setContentsMargins(5, 1, 5, 1)
 
         group_cities = QtWidgets.QWidget()
         layout_cities = QtWidgets.QVBoxLayout(group_cities)
-        layout_cities.setSpacing(5)
         layout_cities.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         layout_cities.addWidget(QtWidgets.QLabel("Cities"),  alignment=Qt.AlignmentFlag.AlignHCenter)
         layout_cities.addWidget(self.cities_slider,          alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout_cities.addWidget(self.city_count,             alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout_cities.addWidget(self.city_box,               alignment=Qt.AlignmentFlag.AlignHCenter)
 
         group_speed = QtWidgets.QWidget()
         layout_speed = QtWidgets.QVBoxLayout(group_speed)
-        layout_speed.setSpacing(5)
         layout_speed.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         layout_speed.addWidget(QtWidgets.QLabel("Speed"),   alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout_speed.addWidget(self.speed_slider,          alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout_speed.addWidget(self.speed_box,             alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout_speed.addWidget(self.speed_slider,           alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout_speed.addWidget(self.speed_box,              alignment=Qt.AlignmentFlag.AlignHCenter)
 
         layout_sliders.addWidget(group_cities)
         layout_sliders.addWidget(group_speed)
+
+        layout_controls.addWidget(QtWidgets.QLabel("Controls:"))
+        layout_controls.addWidget(group_row1)
+        layout_controls.addWidget(group_row2)
+        layout_controls.addWidget(group_row3)
+        layout_controls.addWidget(group_sliders)
+
+        # Algorithm
+
+        group_algorithm = QtWidgets.QWidget()
+        layout_algorithm = QtWidgets.QVBoxLayout(group_algorithm)
+        layout_algorithm.setSpacing(5)
+        layout_algorithm.setContentsMargins(5, 1, 5, 1)
+
+        layout_algorithm.addWidget(QtWidgets.QLabel("Algorithm:"))
+        layout_algorithm.addWidget(self.gpu_button)
+        layout_algorithm.addWidget(self.algorithm_box)
+        
+        # Filler
+
+        top_space = QtWidgets.QWidget()
+        top_space.setFixedHeight(10)
 
         fill_bottom = QtWidgets.QWidget()
         fill_bottom.setSizePolicy(
@@ -148,13 +177,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # Insert into toolbar
 
         controls.addWidget(top_space)
-
-        controls.addWidget(group_row1)
-        controls.addWidget(group_row2)
-        controls.addWidget(group_row3)
-        controls.addWidget(group_sliders)
-
+        controls.addWidget(group_controls)
+        controls.addWidget(group_algorithm)
         controls.addWidget(fill_bottom)
+
+        # Style
 
         controls.setStyleSheet(
             """
@@ -186,11 +213,27 @@ class MainWindow(QtWidgets.QMainWindow):
             QSpinBox {
                 color: #FAFAFA;
                 background-color: #0F0F0F;
+                border: #0F0F0F;
+                border-radius: 4px;
             }
 
             QDoubleSpinBox {
                 color: #FAFAFA;
                 background-color: #0F0F0F;
+                border: #0F0F0F;
+                border-radius: 4px;
+            }
+
+            QComboBox {
+                color: #FAFAFA;
+                background-color: #0F0F0F;
+                border: #0F0F0F;
+                border-radius: 4px;
+            }
+                    
+            QComboBox QAbstractItemView {
+                background-color: #0F0F0F;
+                color: #FAFAFA;
             }
 
             QSlider:vertical {
@@ -206,7 +249,11 @@ class MainWindow(QtWidgets.QMainWindow):
         random_action.triggered.connect(self.random)
 
         self.cities_slider.valueChanged.connect(self.citiesSliderChanged)
-        self.city_count.valueChanged.connect(self.cityCountChanged)
+        self.city_box.valueChanged.connect(self.cityBoxChanged)
+
+        self.speed_slider.valueChanged.connect(self.speedSliderChanged)
+        self.speed_box.valueChanged.connect(self.speedBoxChanged)
+
         self.graph.scene().sigMouseClicked.connect(self.clicked)
 
     def pause(self):
@@ -214,7 +261,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pass
 
     def random(self):
-        n = self.city_count.value()
+        n = self.city_box.value()
         self.cities = list(np.random.uniform(0, self.RANGE, size=(n, 2)))
 
         self.graph.setCities(np.array(self.cities))
@@ -229,7 +276,7 @@ class MainWindow(QtWidgets.QMainWindow):
         scene_pos = event.scenePos()
         pos = self.graph.mapSceneToView(scene_pos)
 
-        self.city_count.setValue(n)
+        self.city_box.setValue(n)
         self.cities_slider.setValue(n)
 
         self.cities.append([pos.x(), pos.y()])
@@ -241,9 +288,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def citiesSliderChanged(self):
         n = self.cities_slider.value()
-        self.city_count.setValue(n)
+        self.city_box.setValue(n)
 
-    def cityCountChanged(self):
-        n = self.city_count.value()
+    def cityBoxChanged(self):
+        n = self.city_box.value()
         self.cities_slider.setValue(n)
-            
+
+    def speedSliderChanged(self):
+        n = self.speed_slider.value()
+        self.speed_box.setValue(n)
+
+    def speedBoxChanged(self):
+        n = self.speed_box.value()
+        self.speed_slider.setValue(n)
+    

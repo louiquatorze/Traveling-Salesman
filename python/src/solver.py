@@ -3,6 +3,7 @@ import subprocess
 import atexit
 import numpy as np
 
+from enum import Enum
 from pathlib import Path
 
 class Solver:
@@ -38,7 +39,7 @@ class Solver:
 
         self.solver_process = None
 
-    def solve(self, cities):
+    def solve(self, cities, steps):
         line_generator = (f"{ p[0] } { p[1] }\n" for p in cities)
 
         self.solver_process.stdin.writelines(line_generator)
@@ -60,3 +61,5 @@ class Solver:
         
     def __del__(self):
         self.cleanup()
+
+    
