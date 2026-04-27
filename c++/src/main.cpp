@@ -46,7 +46,5 @@ int main(int argc, char* argv[]) {
     memory.awaitInitData();
 
     auto solver = TSSolver::create(memory, running);
-    solver->solve();
-
-    return 0;
+    return solver->solve();
 }

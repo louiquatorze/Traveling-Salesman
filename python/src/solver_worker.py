@@ -7,40 +7,48 @@ from PySide6.QtCore import QObject, Signal, Slot, QProcess, Qt
 
 from src.memory import Memory
 from src.init_data import InitData
+from src.benchmark import Benchmark
 
 class SolverWorker(QObject):
-    new_paths = Signal(np.ndarray, int)
     waiting = Signal()
+
+    new_paths = Signal(np.ndarray, int)
     solved = Signal()
+
+    benchmark = Signal(Benchmark)
     
-    def __init__(self, memory: Memory, init_data: InitData, paused: bool, delay: float):
+    def __init__(self, memory: Memory, init_data: InitData):
         super().__init__()
 
         self.solver_process = None
 
-        print(delay)
-
-        self.paused = paused
-        self.delay = delay
-
         self.init_data = init_data
-        self.changed_path_size = len(self.init_data.cities) - 1
-        
         self.memory = memory
 
-        self.path_buffer = np.zeros((1, len(self.init_data.cities) + 1, 2), dtype=np.float64)
-        self.path_buffer[:, 0] = self.init_data.cities[0]
-        self.path_buffer[:, -1] = self.init_data.cities[0]
-
-        self.waiting.connect(self.getPaths, type=Qt.ConnectionType.QueuedConnection)
         self._running = True
+        
+    def init(self, paused: bool = False, delay: float = 0.0):
+        print("[Worker] Initializing")
+        
+        self.waiting.connect(self.getPaths, type=Qt.ConnectionType.QueuedConnection)
 
-    def init(self):
-        self.last_time = time.time() - self.delay
+        self.changed_path_size = len(self.init_data.cities) - 1
 
         self.memory.resetSems()
         self.startProcess()
         self.memory.sendInitData(self.init_data)
+
+        if self.init_data.benchmark:
+            self.solver_process.finished.connect(self.getBenchmark)
+        else:
+            self.paused = paused
+            self.delay = delay
+
+            self.last_time = time.time() - self.delay
+
+            self.path_buffer = np.zeros((1, len(self.init_data.cities) + 1, 2), dtype=np.float64)
+            self.path_buffer[:, 0] = self.init_data.cities[0]
+            self.path_buffer[:, -1] = self.init_data.cities[0]
     
     def startProcess(self):
         PROCESS_EXE = Path(__file__).resolve().parent.parent.parent / "build/travelingSalesman"
@@ -51,7 +59,7 @@ class SolverWorker(QObject):
         
         self.solver_process.readyReadStandardOutput.connect(self.printOut)
         self.solver_process.readyReadStandardError.connect(self.printErr)
-        self.solver_process.finished.connect(self.stop)
+        self.solver_process.finished.connect(self.onProcessFinished)
 
         self.solver_process.start()
 
@@ -73,7 +81,7 @@ class SolverWorker(QObject):
 
         for line in lines:
             print(f"{ ' ' * indent }[C++ Output] { line }")
-
+    
     @Slot()
     def printErr(self, indent = 0):
         if not self.solver_process:
@@ -84,7 +92,29 @@ class SolverWorker(QObject):
 
         for line in lines:
             print(f"{ ' ' * indent }[C++ Error] { line }")
-    
+
+    @Slot(int, QProcess.ExitStatus)
+    def onProcessFinished(self, exitCode, exitStatus, indent = 0):
+        print(f"{ ' ' * indent }[Worker] Subprocess finished")
+        if exitStatus == QProcess.ExitStatus.CrashExit:
+            print(f"{ ' ' * (indent + 1) }[Worker] Process crashed!")
+            self.stop(indent + 2)
+        elif exitCode == 0:
+            print(f"{ ' ' * (indent + 1) }[Worker] Process exited successfully")
+        else:
+            print(f"{ ' ' * (indent + 1) }[Worker] Process exited without success")
+            self.stop(indent + 2)
+
+    @Slot()
+    def getBenchmark(self):
+        if not self.memory.isDataAvailable():
+            print("[Worker] Failed to get benchmark")
+        else:
+            print("[Worker] Reading benchmark")
+            self.benchmark.emit(self.memory.getBenchmark(self.changed_path_size))
+
+        self.stop()
+
     @Slot()
     def getPaths(self): 
         if not self._running:
@@ -104,7 +134,7 @@ class SolverWorker(QObject):
         
         if remaining_time > 0.0:
             time.sleep(remaining_time)
-
+            
         pathc = self.memory.getPathCount()
         
         if pathc == 0:
@@ -116,7 +146,8 @@ class SolverWorker(QObject):
         paths = self.memory.getPathIndices(pathc, self.changed_path_size)
         
         self.path_buffer[:pathc, 1:-1] = self.init_data.cities[paths]
-        
+
+        self.memory.setDataConsumed()
         self.new_paths.emit(self.path_buffer, min_path)
         
         self.last_time = time.time()
@@ -133,7 +164,6 @@ class SolverWorker(QObject):
         try:
             self.waiting.disconnect(self.getPaths)
         except (TypeError, RuntimeError):
-            print(f"{ " " * indent }[Worker] Failed to disconnect")
             pass
 
         self.terminateProcess(indent + 1)
@@ -146,7 +176,6 @@ class SolverWorker(QObject):
         print(f"{ ' ' * indent }[Worker] Cleaning up subprocess")
         
         try:
-            self.solver_process.finished.disconnect(self.stop)
             self.solver_process.readyReadStandardOutput.disconnect(self.printOut)
             self.solver_process.readyReadStandardError.disconnect(self.printErr)
         except (TypeError, RuntimeError):

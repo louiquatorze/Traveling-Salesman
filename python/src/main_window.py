@@ -30,16 +30,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pause_action = QtGui.QAction("Pause", self)
         self.stop_action = QtGui.QAction("Stop", self)
         self.random_action = QtGui.QAction("Random", self)
-
-        steps_button = QtWidgets.QRadioButton("Steps")
+        self.clear_action = QtGui.QAction("Clear", self)
 
         self.city_box = QtWidgets.QSpinBox()
-        self.city_box.setRange(1, MAX_CITIES)
+        self.city_box.setRange(0, MAX_CITIES)
         self.city_box.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.city_box.setValue(INITIAL_CITIES)
 
         self.cities_slider = QtWidgets.QSlider(Qt.Orientation.Vertical)
-        self.cities_slider.setMinimum(1)
+        self.cities_slider.setMinimum(0)
         self.cities_slider.setMaximum(MAX_CITIES)
         self.cities_slider.setValue(INITIAL_CITIES)
 
@@ -57,7 +56,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.algorithm_box = QtWidgets.QComboBox()
         self.algorithm_box.addItems(["Iterative", "Recursive", "Genetic"])
 
-        self.gpu_button = QtWidgets.QRadioButton("GPU")
+        self.gpu_button = QtWidgets.QPushButton("GPU")
+        self.gpu_button.setCheckable(True)
+
+        self.benchmark_button = QtWidgets.QPushButton("Benchmark")
+        self.benchmark_button.setCheckable(True)
         
         # Arrange elements on toolbar
 
@@ -80,13 +83,14 @@ class MainWindow(QtWidgets.QMainWindow):
         random_button = QtWidgets.QToolButton()
         random_button.setDefaultAction(self.random_action)
 
+        clear_button = QtWidgets.QToolButton()
+        clear_button.setDefaultAction(self.clear_action)
+
         group_row1 = QtWidgets.QWidget()
         layout_row1 = QtWidgets.QHBoxLayout(group_row1)
         layout_row1.setContentsMargins(1, 1, 1, 1) 
-        layout_row1.setSpacing(6)
-
         layout_row1.addWidget(solve_button)
-        layout_row1.addWidget(steps_button)
+        layout_row1.addStretch(1)
 
         group_row2 = QtWidgets.QWidget()
         layout_row2 = QtWidgets.QHBoxLayout(group_row2)
@@ -99,6 +103,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout_row3 = QtWidgets.QHBoxLayout(group_row3)
         layout_row3.setContentsMargins(1, 1, 1, 1)
         layout_row3.addWidget(random_button)
+        layout_row3.addWidget(clear_button)
         layout_row3.addStretch(1)
 
         group_sliders = QtWidgets.QWidget()
@@ -138,6 +143,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         layout_algorithm.addWidget(QtWidgets.QLabel("Algorithm:"))
         layout_algorithm.addWidget(self.gpu_button)
+        layout_algorithm.addWidget(self.benchmark_button)
         layout_algorithm.addWidget(self.algorithm_box)
         
         # Filler

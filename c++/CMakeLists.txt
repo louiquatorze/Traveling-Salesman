@@ -9,7 +9,11 @@ add_executable(travelingSalesman
     src/Util.cpp
     src/Memory.cpp
     src/solvers/TSSolver.cpp
-    src/solvers/IterativeSolver.cpp
+    src/solvers/CPUSolver.cpp
+    src/solvers/GPUSolver.cpp
+    src/solvers/IterativeSolverCPU.cpp
+    src/solvers/IterativeSolverGPU.cpp
+    src/solvers/
 )
 
 target_include_directories(travelingSalesman PUBLIC 

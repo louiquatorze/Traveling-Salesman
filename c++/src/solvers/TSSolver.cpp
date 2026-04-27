@@ -1,6 +1,8 @@
 
 #include "TSSolver.h"
-#include "IterativeSolver.h"
+
+#include "IterativeSolverCPU.h"
+#include "IterativeSolverGPU.h"
 
 #include <iostream>
 
@@ -21,54 +23,46 @@ TSSolver::TSSolver(Memory& memory, std::atomic<bool>& running) : memory(memory),
 }
 
 std::unique_ptr<TSSolver> TSSolver::create(Memory& memory, std::atomic<bool>& running) {
-    std::unique_ptr<TSSolver> solver = nullptr;
+    std::unique_ptr<TSSolver> solver;
 
-    switch ((Method)memory.getInitData()->method) {
+    Memory::InitData* initData = memory.getInitData();
+
+    switch ((Method)initData->method) {
         case Iterative:
-            solver = std::make_unique<IterativeSolver>(memory, running);
+            if (initData->gpu) 
+                solver = std::make_unique<IterativeSolverGPU>(memory, running);
+            else
+                solver = std::make_unique<IterativeSolverCPU>(memory, running);
+            
+            break;
+        default:
+            solver = nullptr;
+            std::cerr << "Method not supported" << std::endl;
             break;
     }
 
     if (solver == nullptr) {
-        std::cerr << "Couldn't create appropriate solver" << std::endl;
+        std::cerr << "Failed to create solver" << std::endl;
         exit(EXIT_FAILURE);
     }
-    
-    solver->pickStrategy();
     
     return solver;
 }
 
-void TSSolver::sendSolved() {
-    memory.awaitDataConsumed();
-    memory.setBatchSize(0);
-    memory.postDataAvailable();
+int TSSolver::solve() {
+    if (benchmark) 
+        return solveBenchmark();
+    else
+        return solveBatches();
 }
 
-void TSSolver::calcNextBatchWith(std::function<void (void)> calcNextBatch) {
+void TSSolver::writeBatch(std::function<void (void)> calc) {
     memory.awaitDataConsumed();
 
     if (!running)
         return;
         
     memory.newBatch();
-    
-    calcNextBatch();
-
+    calc();
     memory.postDataAvailable();
-}
-
-void TSSolver::print() {
-    std::cout << cities.size() << " cities: " << std::endl;
-
-    for (Point p : cities) {
-        std::cout << p.x << " " << p.y << std::endl;
-    }
-}
-
-void TSSolver::pickStrategy() {
-    if (gpu)
-        calcNextBatch = [this]() { calcNextBatchGPU(); };
-    else
-        calcNextBatch = [this]() { calcNextBatchCPU(); };
 }

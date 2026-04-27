@@ -10,6 +10,7 @@
 #include <thread>
 #include <chrono>
 #include <string>
+#include <memory.h>
 
 Memory::Memory(char* ipcInfo[]) {
     shmBytes = std::stoi(ipcInfo[1]);
@@ -91,7 +92,18 @@ void Memory::awaitInitData() {
 
 void Memory::disposeInitData() {
     batchData = static_cast<BatchData*>(region);
+    benchmarkData = static_cast<BenchmarkData*>(region);
     initData = nullptr;
+}
+
+void Memory::setBenchmarkDataTime(u32 time_ms) {
+    this->benchmarkData->time_ms = time_ms;
+}
+
+void Memory::setBenchmarkDataIndices(std::vector<u16>& indices) {
+    for (i32 i = 0; i < indices.size(); i++) {
+        this->benchmarkData->indices[i] = indices[i];
+    }
 }
 
 Memory::InitData* Memory::getInitData() {

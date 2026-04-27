@@ -3,9 +3,9 @@ import posix_ipc
 import struct
 import os
 import numpy as np
-import glob
 
 from multiprocessing.shared_memory import SharedMemory
+from src.benchmark import Benchmark
 from src.init_data import InitData
 
 class Memory:
@@ -91,6 +91,16 @@ class Memory:
     def getPathIndices(self, pathc, changed_path_size):
         return np.ndarray((pathc, changed_path_size), dtype=np.uint16, buffer=self.shm.buf, offset=8)
     
+    def getBenchmark(self, changed_path_size):
+        time_ms_array = np.ndarray((1,), dtype=np.uint32, buffer=self.shm.buf, offset=0)
+
+        benchmark = Benchmark(
+            time_ms=time_ms_array[0],
+            indices=np.ndarray((changed_path_size), dtype=np.uint16, buffer=self.shm.buf, offset=4).copy()
+        )
+
+        return benchmark
+
     def cleanup(self, indent = 0):
         print(f"{ " " * indent }[Memory] Cleaning up memory")
         

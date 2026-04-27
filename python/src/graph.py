@@ -27,6 +27,9 @@ class Graph(pg.PlotWidget):
         self.view.setYRange(min=0, max=RANGE)
         self.view.setAspectLocked(True)
 
+    def clearCities(self):
+        self.cities_item.setData(pos=[])
+
     def clearPath(self):
         self.path_item.setData([], [])
 

@@ -14,8 +14,7 @@ public:
     TSSolver(Memory& memory, std::atomic<bool>& running);
     static std::unique_ptr<TSSolver> create(Memory& memory, std::atomic<bool>& running);
 
-    virtual void solve() = 0;
-    virtual void print();
+    int solve();
 
 protected:
     enum Method {
@@ -30,14 +29,8 @@ protected:
     bool benchmark;
     
     bool solved;
-
-    std::function<void (void)> calcNextBatch;
-    void sendSolved();
-    void calcNextBatchWith(std::function<void (void)> calc);
+    void writeBatch(std::function<void (void)> calc);
     
-    virtual void calcNextBatchCPU() = 0;
-    virtual void calcNextBatchGPU() = 0;
-
-private:
-    void pickStrategy();
+    virtual int solveBatches() = 0;
+    virtual int solveBenchmark() = 0;
 };

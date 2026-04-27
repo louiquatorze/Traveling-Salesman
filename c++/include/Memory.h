@@ -15,13 +15,20 @@ public:
     struct  InitData {
         i32 cityCount;
         i32 method;
-
+        
         bool gpu; 
         bool benchmark; 
 
         char padding[6];
         
         Point pts[0];
+    };
+    #pragma pack(pop)
+
+    #pragma pack(push, 1)
+    struct BenchmarkData {
+        u32 time_ms;
+        u16 indices[];
     };
     #pragma pack(pop)
 
@@ -58,6 +65,9 @@ public:
     void setBatchSize(i32 size);
     void setMinPathIndex(i32 index);
 
+    void setBenchmarkDataTime(u32 time_ms);
+    void setBenchmarkDataIndices(std::vector<u16>& indices);
+
     bool nextPath();
     void setNextPathIndex(u16 index);
 
@@ -72,6 +82,7 @@ private:
     i32 index;
 
     void* region;
+    BenchmarkData* benchmarkData;
     BatchData* batchData;
     InitData* initData;
 
