@@ -2,15 +2,23 @@
 #pragma once
 
 #include "TSSolver.h"
-#include "../Point.h"
-
-#include <vector>
 
 class IterativeSolver : public TSSolver {
 public:
-    IterativeSolver(Mode mode, bool gpu);
+    IterativeSolver(Memory& memory, std::atomic<bool>& running);
+
+    void solve() override;
 
 protected:
-    void solveCPU(std::vector<Point>& points) override;
-    void solveGPU(std::vector<Point>& points) override;
+    void calcNextBatchCPU() override;
+    void calcNextBatchGPU() override;
+
+private:
+    void calcFirst();
+
+    std::vector<std::vector<f64>> dists;
+    std::vector<i32> swaps;
+
+    i32 n;
+    f64 minLength;
 };

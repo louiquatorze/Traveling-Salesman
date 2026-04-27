@@ -1,8 +1,8 @@
 
 import pyqtgraph as pg
-import numpy as np
+import time
 
-from src.main_window import MainWindow
+from src.controller import Controller
 
 MAX_CITIES = 500
 INITIAL_CITIES = 10
@@ -11,9 +11,12 @@ RANGE = 10.0
 # Create app
 
 app = pg.mkQApp("Traveling Salesman")
-mw = MainWindow(MAX_CITIES, INITIAL_CITIES, RANGE)
+controller = Controller(MAX_CITIES, INITIAL_CITIES, RANGE)
 
 # Execute
 
 if __name__ == '__main__':
-    pg.exec()
+    try:
+        pg.exec()
+    finally:
+        controller.cleanup()

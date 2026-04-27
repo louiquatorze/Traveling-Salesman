@@ -1,52 +1,24 @@
 
 import numpy as np
 import pyqtgraph as pg
-import copy
 
 from pyqtgraph.Qt import QtWidgets, QtGui
 from pyqtgraph.Qt.QtCore import Qt
-from pyqtgraph.GraphicsScene.mouseEvents import MouseClickEvent
 
-
-from PySide6.QtWidgets import QAbstractSpinBox
-
-from src.graph import Graph
-from src.solver import Solver
+from PySide6.QtWidgets import QAbstractSpinBox, QStyle
+from PySide6.QtGui import QPainter, QColor
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, MAX_CITIES, INITIAL_CITIES, RANGE):
         super().__init__()
 
-        self.MAX_CITIES = MAX_CITIES
-        self.INITIAL_CITIES = INITIAL_CITIES
-        self.RANGE = RANGE
-
         # Init window
 
         self.setWindowTitle("Traveling Salesman")
         self.resize(800, 600)
-        self.show()
 
-        # Init components
-
-        self.cities = []
-
-        self.createSolver()
-        self.createGraph()
-        self.createControls()
-
-        # Init graph with random values
-
-        self.random()
+        # Init controls
     
-    def createSolver(self):
-        self.solver = Solver()
-
-    def createGraph(self):
-        self.graph = Graph(self.RANGE, self.height() / self.width())
-        self.setCentralWidget(self.graph)
-
-    def createControls(self):
         controls = QtWidgets.QToolBar("Controls")
         controls.setMovable(False)
         controls.setIconSize(pg.QtCore.QSize(24, 24))
@@ -54,21 +26,22 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Init elements of toolbar
 
-        solve_action = QtGui.QAction("Solve", self)
-        pause_action = QtGui.QAction("Pause", self)
-        random_action = QtGui.QAction("Random", self)
+        self.solve_action = QtGui.QAction("Solve", self)
+        self.pause_action = QtGui.QAction("Pause", self)
+        self.stop_action = QtGui.QAction("Stop", self)
+        self.random_action = QtGui.QAction("Random", self)
 
         steps_button = QtWidgets.QRadioButton("Steps")
 
         self.city_box = QtWidgets.QSpinBox()
-        self.city_box.setRange(1, self.MAX_CITIES)
+        self.city_box.setRange(1, MAX_CITIES)
         self.city_box.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
-        self.city_box.setValue(self.INITIAL_CITIES)
+        self.city_box.setValue(INITIAL_CITIES)
 
         self.cities_slider = QtWidgets.QSlider(Qt.Orientation.Vertical)
         self.cities_slider.setMinimum(1)
-        self.cities_slider.setMaximum(self.MAX_CITIES)
-        self.cities_slider.setValue(self.INITIAL_CITIES)
+        self.cities_slider.setMaximum(MAX_CITIES)
+        self.cities_slider.setValue(INITIAL_CITIES)
 
         self.speed_box = QtWidgets.QDoubleSpinBox()
         self.speed_box.setRange(0.5, 100.0)
@@ -96,13 +69,16 @@ class MainWindow(QtWidgets.QMainWindow):
         layout_controls.setContentsMargins(5, 1, 5, 1)
 
         solve_button = QtWidgets.QToolButton()
-        solve_button.setDefaultAction(solve_action)
+        solve_button.setDefaultAction(self.solve_action)
 
         pause_button = QtWidgets.QToolButton()
-        pause_button.setDefaultAction(pause_action)
+        pause_button.setDefaultAction(self.pause_action)
+
+        stop_button = QtWidgets.QToolButton()
+        stop_button.setDefaultAction(self.stop_action)
 
         random_button = QtWidgets.QToolButton()
-        random_button.setDefaultAction(random_action)
+        random_button.setDefaultAction(self.random_action)
 
         group_row1 = QtWidgets.QWidget()
         layout_row1 = QtWidgets.QHBoxLayout(group_row1)
@@ -116,6 +92,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout_row2 = QtWidgets.QHBoxLayout(group_row2)
         layout_row2.setContentsMargins(1, 1, 1, 1)
         layout_row2.addWidget(pause_button)
+        layout_row2.addWidget(stop_button)
         layout_row2.addStretch(1)
 
         group_row3 = QtWidgets.QWidget()
@@ -241,64 +218,6 @@ class MainWindow(QtWidgets.QMainWindow):
             }
             """
         )
-
-        # Hook up
-
-        solve_action.triggered.connect(self.solve)
-        pause_action.triggered.connect(self.pause)
-        random_action.triggered.connect(self.random)
-
-        self.cities_slider.valueChanged.connect(self.citiesSliderChanged)
-        self.city_box.valueChanged.connect(self.cityBoxChanged)
-
-        self.speed_slider.valueChanged.connect(self.speedSliderChanged)
-        self.speed_box.valueChanged.connect(self.speedBoxChanged)
-
-        self.graph.scene().sigMouseClicked.connect(self.clicked)
-
-    def pause(self):
-        print("paused")
-        pass
-
-    def random(self):
-        n = self.city_box.value()
-        self.cities = list(np.random.uniform(0, self.RANGE, size=(n, 2)))
-
-        self.graph.setCities(np.array(self.cities))
-        self.graph.setPath(np.array([]))
-
-    def clicked(self, event: MouseClickEvent):
-        n = len(self.cities) + 1
-
-        if n > self.MAX_CITIES:
-            return
-        
-        scene_pos = event.scenePos()
-        pos = self.graph.mapSceneToView(scene_pos)
-
-        self.city_box.setValue(n)
-        self.cities_slider.setValue(n)
-
-        self.cities.append([pos.x(), pos.y()])
-        self.graph.setCities(np.array(self.cities))
     
-    def solve(self):
-        path = self.solver.solve(self.cities)
-        self.graph.setPath(path)
-
-    def citiesSliderChanged(self):
-        n = self.cities_slider.value()
-        self.city_box.setValue(n)
-
-    def cityBoxChanged(self):
-        n = self.city_box.value()
-        self.cities_slider.setValue(n)
-
-    def speedSliderChanged(self):
-        n = self.speed_slider.value()
-        self.speed_box.setValue(n)
-
-    def speedBoxChanged(self):
-        n = self.speed_box.value()
-        self.speed_slider.setValue(n)
-    
+    def setPaused(self, paused):
+        self.pause_action.setText("Play" if paused else "Pause")
